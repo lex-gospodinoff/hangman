@@ -10,22 +10,16 @@ public class Hangman {
 	String FILE_NAME = "wordList.txt";
 	
 	private String goal;
-	private String currentGuessed;
+	private char[] currentGuessed;
 	private char[] misses;
-	private int numGuesses;
+//	private int numGuesses;
 	
 	public Hangman() {
 		this.goal = findNewGoalWord();
 		this.misses = new char[6];
 		for (int i = 0; i < 6; i++) {
-			this.misses[i] = ' ';
+			this.misses[i] = '~';
 		}
-		this.misses[0] = 'e'; //test code vvv
-		this.misses[1] = 'd';
-		this.misses[2] = 'a';
-		this.misses[3] = 'l';
-		this.misses[4] = 'm';
-		this.misses[5] = 'o';
 		
 //		this.numGuesses = 0;  //i don't think i need this
 	}
@@ -66,32 +60,56 @@ public class Hangman {
 			System.out.println(e.getMessage());
 		}
 		
-		this.currentGuessed = "";
+		this.currentGuessed = new char[10];
 		int j = 0;
 		while (j < newWord.length()) {
-			this.currentGuessed += "_ ";
+			this.currentGuessed[j] = '_';
 			j++;
 		}
 		while (j < 10) {
-			this.currentGuessed += "  ";
+			this.currentGuessed[j] = ' ';
 			j++;
 		}
 		
 		return newWord;
 	}
 	
+	/*
+	 * Tests letter against goal. If correct, adds the letter to currentGuessed in all
+	 * places it occurs. If incorrect, adds the letter to misses.
+	 * (not finished)
+	 */
+	private void guess(char letter) {
+		
+		int index;
+		index = this.goal.indexOf(letter);
+		if (index == -1) {
+			this.misses[5] = letter;
+			Arrays.sort(this.misses);
+		}
+		while (index >= 0) {
+			System.out.println(index);
+			index = this.goal.indexOf(letter, index + 1);
+		}
+		printGame();
+	}
+	
+	/*
+	 * Prints out the current state of the game of hangman.
+	 */
 	private void printGame() {
 		
 		String printout = "";
 		
-		printout += "XXXXXXXXXXXXXXXXXXXXXXXXX\nX                       X\n";
-		printout += "X  " + this.currentGuessed + " X\n";
-		printout += "X                       X\nX  incorrect:           X\nX  ";
+		printout += "XXXXXXXXXXXXXXXXXXXXXXXXX\nX                       X\nX  ";
+		for (int i = 0; i < currentGuessed.length; i++) {
+			printout += currentGuessed[i] + " ";
+		}
+		printout += " X\nX                       X\nX  incorrect:           X\nX  ";
 		
-		//may need to be changed if ' ' turns out to sort before letters
 		printout += misses[0];
 		for (int i = 1; i < 6; i++) {
-			if (misses[i] == ' ') {
+			if (misses[i] == '~') {
 				printout += "   ";
 			}
 			else {
@@ -101,14 +119,14 @@ public class Hangman {
 		printout += "     X\nX                       X\n";
 		printout += "X   ----                X\nX   |  |                X\n";
 		
-		printout += "X   |  " + (misses[0] == ' ' ? " " : "O");
+		printout += "X   |  " + (misses[0] == '~' ? " " : "O");
 		printout += "                X\nX   | ";
-		printout += (misses[2] == ' ' ? " " : "/");
-		printout += (misses[1] == ' ' ? " " : "|");
-		printout += (misses[3] == ' ' ? " " : "\\");
+		printout += (misses[2] == '~' ? " " : "/");
+		printout += (misses[1] == '~' ? " " : "|");
+		printout += (misses[3] == '~' ? " " : "\\");
 		printout += "               X\nX   | ";
-		printout += (misses[4] == ' ' ? "  " : "/ ");
-		printout += (misses[5] == ' ' ? " " : "\\") + "               X\n";
+		printout += (misses[4] == '~' ? "  " : "/ ");
+		printout += (misses[5] == '~' ? " " : "\\") + "               X\n";
 		
 		printout += "X   |                   X\nX  -+----               X\n";
 		printout += "X                       X\nXXXXXXXXXXXXXXXXXXXXXXXXX\n\n";
@@ -131,10 +149,21 @@ public class Hangman {
 		System.out.println(exampleHangman.getGoal());
 		Scanner in = new Scanner(System.in);
 		String s = "";
-		while (!s.equals("q")){
-			s = in.next();
-			System.out.println("here's " + s);
+		char letter;
+		while (!s.equals("quit")){
+			s = in.next().toLowerCase();
+			if (s.matches("^[a-z]*")) {
+				letter = s.charAt(0);
+				exampleHangman.guess(letter);
+			}
+			else {
+				System.out.println("Please enter a letter.");
+			}
+			
+
+			
 		}
+		in.close();
 		
 	}
 
