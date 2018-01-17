@@ -1,4 +1,6 @@
-import java.io.*;
+
+import java.io.BufferedReader;
+import java.io.FileReader;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.Arrays;
 import java.util.Scanner;
@@ -12,7 +14,6 @@ public class Hangman {
 	private String goal;
 	private char[] currentGuessed;
 	private char[] misses;
-//	private int numGuesses;
 	
 	public Hangman() {
 		this.goal = findNewGoalWord();
@@ -20,8 +21,6 @@ public class Hangman {
 		for (int i = 0; i < 6; i++) {
 			this.misses[i] = '~';
 		}
-		
-//		this.numGuesses = 0;  //i don't think i need this
 	}
 
 	/*
@@ -41,20 +40,26 @@ public class Hangman {
 			}
 			bufferedReader.close();
 			
-			int lineNum = ThreadLocalRandom.current().nextInt(numWords);
-			
-			fileReader = new FileReader(FILE_NAME);
-			bufferedReader = new BufferedReader(fileReader);
-			int i = 0;
-			String line;
-			while ((line = bufferedReader.readLine()) != null) {
-				if (i == lineNum) {
-					newWord = line;
-					break;
+			boolean foundWord = false;
+			while (!foundWord) {
+				int lineNum = ThreadLocalRandom.current().nextInt(numWords);
+				
+				fileReader = new FileReader(FILE_NAME);
+				bufferedReader = new BufferedReader(fileReader);
+				int i = 0;
+				String line;
+				while ((line = bufferedReader.readLine()) != null) {
+					if (i == lineNum) {
+						newWord = line;
+						break;
+					}
+					i++;
 				}
-				i++;
+				bufferedReader.close();
+				if (newWord.matches("\\p{Alpha}{0,10}")) foundWord = true; 
 			}
-			bufferedReader.close();
+			
+			
 		}
 		catch (Exception e) {
 			System.out.println(e.getMessage());
@@ -76,22 +81,38 @@ public class Hangman {
 	
 	/*
 	 * Tests letter against goal. If correct, adds the letter to currentGuessed in all
-	 * places it occurs. If incorrect, adds the letter to misses.
-	 * (not finished)
+	 * places it occurs. If incorrect, adds the letter to misses. Checks to see whether 
+	 * the game has been won or lost and prints out an appropriate message.
 	 */
 	private void guess(char letter) {
 		
 		int index;
 		index = this.goal.indexOf(letter);
 		if (index == -1) {
-			this.misses[5] = letter;
-			Arrays.sort(this.misses);
+			if (Arrays.binarySearch(this.misses, letter) < 0) {
+				this.misses[5] = letter;
+				Arrays.sort(this.misses);
+			}
 		}
 		while (index >= 0) {
-			System.out.println(index);
+			this.currentGuessed[index] = letter;
 			index = this.goal.indexOf(letter, index + 1);
 		}
-		printGame();
+		
+		if (hasWon()) {
+			printGame();
+			System.out.println("Congratulations!");
+		}
+		else if (hasLost()) {
+			for (int i = 0; i < this.goal.length(); i++) {
+				this.currentGuessed[i] = this.goal.charAt(i);
+			}
+			printGame();
+			System.out.println("Better luck next time!");
+		}
+		else {
+			printGame();
+		}
 	}
 	
 	/*
@@ -107,7 +128,7 @@ public class Hangman {
 		}
 		printout += " X\nX                       X\nX  incorrect:           X\nX  ";
 		
-		printout += misses[0];
+		printout += misses[0] == '~' ? " " : misses[0];
 		for (int i = 1; i < 6; i++) {
 			if (misses[i] == '~') {
 				printout += "   ";
@@ -121,11 +142,11 @@ public class Hangman {
 		
 		printout += "X   |  " + (misses[0] == '~' ? " " : "O");
 		printout += "                X\nX   | ";
-		printout += (misses[2] == '~' ? " " : "/");
-		printout += (misses[1] == '~' ? " " : "|");
-		printout += (misses[3] == '~' ? " " : "\\");
+		printout += misses[2] == '~' ? " " : "/";
+		printout += misses[1] == '~' ? " " : "|";
+		printout += misses[3] == '~' ? " " : "\\";
 		printout += "               X\nX   | ";
-		printout += (misses[4] == '~' ? "  " : "/ ");
+		printout += misses[4] == '~' ? "  " : "/ ";
 		printout += (misses[5] == '~' ? " " : "\\") + "               X\n";
 		
 		printout += "X   |                   X\nX  -+----               X\n";
@@ -135,36 +156,58 @@ public class Hangman {
 		
 	}
 	
-	private String getGoal() {
-		return this.goal;
+	private boolean hasWon() {
+		for (char value : this.currentGuessed) {
+			if (value == '_') return false;
+		}
+		return true;
 	}
 	
-	private char[] getMisses() {
-		return this.misses;
+	private boolean hasLost() {
+		for (char value : this.misses) {
+			if (value == '~') return false;
+		}
+		return true;
 	}
-
+	
+	
 	public static void main(String[] args) {
-		Hangman exampleHangman = new Hangman();
-		exampleHangman.printGame();
-		System.out.println(exampleHangman.getGoal());
+		
+		Hangman hangman; 
 		Scanner in = new Scanner(System.in);
 		String s = "";
 		char letter;
-		while (!s.equals("quit")){
-			s = in.next().toLowerCase();
-			if (s.matches("^[a-z]*")) {
-				letter = s.charAt(0);
-				exampleHangman.guess(letter);
-			}
-			else {
-				System.out.println("Please enter a letter.");
-			}
-			
-
-			
-		}
-		in.close();
+		boolean quit = false;
 		
+		do {
+			hangman = new Hangman();
+			hangman.printGame();
+			
+			while (!hangman.hasWon() & !hangman.hasLost()){
+				s = in.next().toLowerCase();
+				if (s.matches("^[a-z]*")) {
+					letter = s.charAt(0);
+					hangman.guess(letter);
+				}
+				else {
+					System.out.println("Please enter a letter.");
+				}
+			}
+			
+			System.out.println("Would you like to play again?");
+			
+			s = in.next().toLowerCase();
+			while (s.charAt(0) != 'y' & s.charAt(0) != 'n') {
+				System.out.println("Please answer 'yes' or 'no'.");
+				s = in.next().toLowerCase();
+			}
+			if (s.charAt(0) == 'n') {
+				System.out.println("Thanks for playing!");
+				quit = true;
+			}
+			
+		} while (!quit);
+		in.close();		
 	}
 
 }
